@@ -10,9 +10,9 @@ const PetSchema = new Schema({
   color: String,
   age: Number,
   user: {
-  type: Schema.Types.ObjectId,
-  ref: 'User',
-}
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+},
 }, {
     collection: 'pets',
     timestamps: true,

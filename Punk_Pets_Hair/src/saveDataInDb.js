@@ -1,33 +1,35 @@
 import Pet from './models/Pet.js';
 import User from './models/User.js';
+import Promise from 'bluebird';
 
 export default async function saveDataInDb(data) {
   try {
-    console.log('savedata');
-    const promisesUser = data.users.map ((user) => {
-      return (new User(user).save());
+    let promisesUsers = data.users.map ((user) => {
+          return (new User(user)).save();
     });
-    // const user = await Promise.all(promisesUser);
-    // console.log(user);
-   //
-  //   const promises = data.pets.map ((pet) => {
-  //     //  console.log(pet.userId);
-  //     //  let user = users.find({id: pet.userId});
-  //     //  user.then((doc) => {
-  //     //    console.log(doc);
-  //     //    const petData = Object.assign({}, pet, {
-  //     //    user: doc._id,
-  //     //  });
-  //     //  })
-  //    return (new Pet(pet)).save();
-  //  });
-    const promises = data.pets.map ((pet) => {
-          return (new Pet(pet)).save();
-    });
-    console.log('success');
+
+    const users = await Promise.all(promisesUsers);
+    const promises = data.pets.map (async (pet) => {
+       let user =  await User.findOne({id: pet.userId});
+       const petData = Object.assign({}, pet, {
+         user: user._id,
+       });
+       const pets = await (new Pet(petData)).save()
+       return pets;
+   });
+
+   const pets = await Promise.all(promises);
+   users.forEach(async (user) => {
+      let pets =  await Pet.find({userId: user.id});
+
+      await Promise.all(pets.map((pet) => {
+        return User.update({id: pet.userId}, { $push: { pets: pet._id }});
+      }));
+  });
+
     return {
-      users: await Promise.all(promisesUser),
-      pets: await Promise.all(promises),
+      users,
+      pets,
     };
   } catch (err) {
     console.log('error', err);

@@ -10,7 +10,7 @@ import http from 'http';
 import pcData from '../data';
 
 mongoose.Promise = Promise;
-mongoose.connect('mongodb://localhost/27017/punkPets');
+mongoose.connect('mongodb://localhost/27017');
 
 let data = {};
 const dataUrl = 'https://gist.githubusercontent.com/isuvorov/55f38b82ce263836dadc0503845db4da/raw/pets.json';
@@ -27,6 +27,7 @@ app.get('/', async (req, res) => {
   };
   return res.send(JSON.stringify(obj));
 });
+
 app.get('/users', async (req, res) => {
   if (req.query.havePet) {
     const pets = await Pet.find({type: req.query.havePet});
@@ -45,14 +46,17 @@ app.get('/users', async (req, res) => {
     })
     return res.json(usersArr);
   } else {
-    console.log(req.query.havePet);
     const users = await User.find();
     return res.json(users);
   }
 });
+
 app.get('/users/:id', async (req, res) => {
   if (isFinite(req.params.id)) {
     const users = await User.find({id: req.params.id});
+    return res.json(users);
+  } else if (req.params.id == 'populate') {
+    const users = await User.find().populate('pets');;
     return res.json(users);
   } else {
     const users = await User.find({username: req.params.id});
@@ -60,6 +64,7 @@ app.get('/users/:id', async (req, res) => {
   }
 
 });
+
 app.get('/users/:username/pets', async (req, res) => {
   if (isFinite(req.params.username)) {
     const pets = await Pet.find({userId: req.params.username});
@@ -70,6 +75,7 @@ app.get('/users/:username/pets', async (req, res) => {
     return res.json(pets);
   }
 });
+
 app.get('/pets', async (req, res) => {
   if (req.query.type) {
     const pets = await Pet.find({type: req.query.type});
@@ -85,13 +91,33 @@ app.get('/pets', async (req, res) => {
     return res.json(pets);
   }
 });
+
 app.get('/pets/:id', async (req, res) => {
-  const pets = await Pet.find({id: req.params.id});
+  if (req.params.id == 'populate') {
+    if (req.query.type && req.query.age_gt) {
+      const pets = await Pet.find({type: req.query.type, age: {$gt: req.query.age_gt}}).populate('user');
+      return res.json(pets);
+    } else if (req.query.type && req.query.age_lt) {
+      const pets = await Pet.find({type: req.query.type, age: {$lt: req.query.age_lt}}).populate('user');
+      return res.json(pets);
+    } else if (req.query.type) {
+      const pets = await Pet.find({type: req.query.type}).populate('user');;
+      return res.json(pets);
+    }
+    const pets = await Pet.find().populate('user');
+    return res.json(pets);
+  } else {
+    const pets = await Pet.find({id: req.params.id});
+    return res.json(pets);
+  }
+});
+
+app.get('/pets/:id/populate', async (req, res) => {
+  const pets = await Pet.find({id: req.params.id}).populate('user');
   return res.json(pets);
 });
 
 app.get('/data', async (req, res) => {
-  console.log('req');
   return res.json(await saveDataInDb(data));
 });
 
@@ -102,12 +128,6 @@ app.get('/remove', async (req, res) => {
   return res.json('Removed success');
 });
 
-// app.post('/data', async (req, res) => {
-//   const wq = req.body;
-//   console.log(wq);
-//   const data = JSON.parse(req.body);
-//   return res.json(await saveDataInDb(data));
-// });
 app.listen(3000, function(){
   console.log('Express server listening on port' );
 });

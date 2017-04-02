@@ -10,14 +10,18 @@ const UserSchema = new Schema({
   values: {
     money: String,
     origin: String,
-  }
+  },
+  pets: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Pet',
+  }],
 }, {
-    collection: 'user',
+    collection: 'users',
     timestamps: true,
   });
 
 UserSchema.methods.toJSON = function () {
-  return _.pick(this, ['id', 'username', 'fullname', 'password', 'values']);
+  return _.pick(this, ['id', 'username', 'fullname', 'password', 'values', 'pets']);
 };
 
 export default mongoose.model('User', UserSchema);

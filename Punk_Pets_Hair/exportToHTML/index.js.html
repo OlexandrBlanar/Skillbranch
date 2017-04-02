@@ -1,0 +1,137 @@
+<html>
+<head>
+<title>index.js</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.ln { color: #606366; font-weight: normal; font-style: normal; }
+.s0 { color: rgb(204,120,50); font-weight: bold; }
+.s1 { color: rgb(169,183,198); }
+.s2 { color: rgb(106,135,89); }
+.s3 { color: rgb(204,120,50); }
+.s4 { color: rgb(104,151,187); }
+.s5 { color: rgb(169,183,198); }
+.s6 { color: rgb(128,128,128); }
+</style>
+</head>
+<BODY BGCOLOR="#2b2b2b">
+<TABLE CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<TR><TD><CENTER>
+<FONT FACE="Arial, Helvetica" COLOR="#000000">
+index.js</FONT>
+</center></TD></TR></TABLE>
+<pre>
+<span class="s0">import </span><span class="s1">express from </span><span class="s2">'express'</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">fetch from </span><span class="s2">'isomorphic-fetch'</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">cors from </span><span class="s2">'cors'</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">saveDataInDb from </span><span class="s2">'./saveDataInDb'</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">Promise from </span><span class="s2">'bluebird'</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">Pet from </span><span class="s2">'./models/Pet'</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">User from </span><span class="s2">'./models/User'</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">mongoose from </span><span class="s2">'mongoose'</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">http from </span><span class="s2">'http'</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">import </span><span class="s1">pcData from </span><span class="s2">'../data'</span><span class="s3">;</span><span class="s1"> 
+ 
+mongoose.Promise = Promise</span><span class="s3">;</span><span class="s1"> 
+mongoose.connect(</span><span class="s2">'mongodb://localhost/27017/punkPetsHair'</span><span class="s1">)</span><span class="s3">;</span><span class="s1"> 
+ 
+</span><span class="s0">let </span><span class="s1">data = {}</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s0">const </span><span class="s1">dataUrl = </span><span class="s2">'https://gist.githubusercontent.com/isuvorov/55f38b82ce263836dadc0503845db4da/raw/pets.json'</span><span class="s3">;</span><span class="s1"> 
+pcData(dataUrl) 
+  .then((value) =&gt; {data = value})</span><span class="s3">;</span><span class="s1"> 
+ 
+</span><span class="s0">const </span><span class="s1">app = express()</span><span class="s3">;</span><span class="s1"> 
+app.use(cors())</span><span class="s3">;</span><span class="s1"> 
+ 
+app.get(</span><span class="s2">'/'</span><span class="s3">, </span><span class="s1">async (req</span><span class="s3">, </span><span class="s1">res) =&gt; { 
+  </span><span class="s0">const </span><span class="s1">obj = { 
+    </span><span class="s2">&quot;users&quot;</span><span class="s1">: await User.find()</span><span class="s3">,</span><span class="s1"> 
+    </span><span class="s2">&quot;pets&quot;</span><span class="s1">: await Pet.find()</span><span class="s3">,</span><span class="s1"> 
+  }</span><span class="s3">;</span><span class="s1"> 
+  </span><span class="s0">return </span><span class="s1">res.send(JSON.stringify(obj))</span><span class="s3">;</span><span class="s1"> 
+})</span><span class="s3">;</span><span class="s1"> 
+app.get(</span><span class="s2">'/users'</span><span class="s3">, </span><span class="s1">async (req</span><span class="s3">, </span><span class="s1">res) =&gt; { 
+  </span><span class="s0">if </span><span class="s1">(req.query.havePet) { 
+    </span><span class="s0">const </span><span class="s1">pets = await Pet.find({type: req.query.havePet})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">let </span><span class="s1">userid = pets.map((pet) =&gt; {</span><span class="s0">return </span><span class="s1">pet.userId})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">let </span><span class="s1">arrId = []</span><span class="s3">;</span><span class="s1"> 
+    userid.forEach((id</span><span class="s3">, </span><span class="s1">i</span><span class="s3">, </span><span class="s1">arr) =&gt; { 
+        </span><span class="s0">if </span><span class="s1">(arrId.indexOf(id) == -</span><span class="s4">1</span><span class="s1">) { 
+        arrId.push(id)</span><span class="s3">;</span><span class="s1"> 
+      }})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">const </span><span class="s1">promises = arrId.map((userid) =&gt; { 
+      </span><span class="s0">return </span><span class="s1">User.find({id: userid})</span><span class="s3">;</span><span class="s1"> 
+    })</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">const </span><span class="s1">users = await Promise.all(promises)</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">const </span><span class="s1">usersArr = users.map((user) =&gt; { 
+        </span><span class="s0">return </span><span class="s1">user[</span><span class="s4">0</span><span class="s1">]</span><span class="s3">;</span><span class="s1"> 
+    }) 
+    </span><span class="s0">return </span><span class="s1">res.json(usersArr)</span><span class="s3">;</span><span class="s1"> 
+  } </span><span class="s0">else </span><span class="s1">{ 
+    </span><span class="s0">const </span><span class="s1">users = await User.find()</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">return </span><span class="s1">res.json(users)</span><span class="s3">;</span><span class="s1"> 
+  } 
+})</span><span class="s3">;</span><span class="s1"> 
+app.get(</span><span class="s2">'/users/:id'</span><span class="s3">, </span><span class="s1">async (req</span><span class="s3">, </span><span class="s1">res) =&gt; { 
+  </span><span class="s0">if </span><span class="s1">(isFinite(req.params.id)) { 
+    </span><span class="s0">const </span><span class="s1">users = await User.find({id: req.params.id})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">return </span><span class="s1">res.json(users)</span><span class="s3">;</span><span class="s1"> 
+  } </span><span class="s0">else </span><span class="s1">{ 
+    </span><span class="s0">const </span><span class="s1">users = await User.find({username: req.params.id})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">return </span><span class="s1">res.json(users)</span><span class="s3">;</span><span class="s1"> 
+  } 
+ 
+})</span><span class="s3">;</span><span class="s1"> 
+app.get(</span><span class="s2">'/users/:username/pets'</span><span class="s3">, </span><span class="s1">async (req</span><span class="s3">, </span><span class="s1">res) =&gt; { 
+  </span><span class="s0">if </span><span class="s1">(isFinite(req.params.username)) { 
+    </span><span class="s0">const </span><span class="s1">pets = await Pet.find({userId: req.params.username})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">return </span><span class="s1">res.json(pets)</span><span class="s3">;</span><span class="s1"> 
+  } </span><span class="s0">else </span><span class="s1">{ 
+    </span><span class="s0">const </span><span class="s1">users = await User.find({username: req.params.username})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">const </span><span class="s1">pets = await Pet.find({userId: users[</span><span class="s4">0</span><span class="s1">].id})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">return </span><span class="s1">res.json(pets)</span><span class="s3">;</span><span class="s1"> 
+  } 
+})</span><span class="s3">;</span><span class="s1"> 
+app.get(</span><span class="s2">'/pets'</span><span class="s3">, </span><span class="s1">async (req</span><span class="s3">, </span><span class="s1">res) =&gt; { 
+  </span><span class="s0">if </span><span class="s1">(req.query.type) { 
+    </span><span class="s0">const </span><span class="s1">pets = await Pet.find({type: req.query.type})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">return </span><span class="s1">res.json(pets)</span><span class="s3">;</span><span class="s1"> 
+  } </span><span class="s0">else if </span><span class="s1">(req.query.age_gt) { 
+    </span><span class="s0">const </span><span class="s1">pets = await Pet.find({age: {$gt: req.query.age_gt}})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">return </span><span class="s1">res.json(pets)</span><span class="s3">;</span><span class="s1"> 
+  } </span><span class="s0">else if </span><span class="s1">(req.query.age_lt) { 
+    </span><span class="s0">const </span><span class="s1">pets = await Pet.find({age: {$lt: req.query.age_lt}})</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">return </span><span class="s1">res.json(pets)</span><span class="s3">;</span><span class="s1"> 
+  } </span><span class="s0">else </span><span class="s1">{ 
+    </span><span class="s0">const </span><span class="s1">pets = await Pet.find()</span><span class="s3">;</span><span class="s1"> 
+    </span><span class="s0">return </span><span class="s1">res.json(pets)</span><span class="s3">;</span><span class="s1"> 
+  } 
+})</span><span class="s3">;</span><span class="s1"> 
+app.get(</span><span class="s2">'/pets/:id'</span><span class="s3">, </span><span class="s1">async (req</span><span class="s3">, </span><span class="s1">res) =&gt; { 
+  </span><span class="s0">const </span><span class="s1">pets = await Pet.find({id: req.params.id})</span><span class="s3">;</span><span class="s1"> 
+  </span><span class="s0">return </span><span class="s1">res.json(pets)</span><span class="s3">;</span><span class="s1"> 
+})</span><span class="s3">;</span><span class="s1"> 
+ 
+app.get(</span><span class="s2">'/data'</span><span class="s3">, </span><span class="s1">async (req</span><span class="s3">, </span><span class="s1">res) =&gt; { 
+  </span><span class="s0">return </span><span class="s1">res.json(await saveDataInDb(data))</span><span class="s3">;</span><span class="s1"> 
+})</span><span class="s3">;</span><span class="s1"> 
+ 
+app.get(</span><span class="s2">'/remove'</span><span class="s3">, </span><span class="s1">async (req</span><span class="s3">, </span><span class="s1">res) =&gt; { 
+  await Pet.remove()</span><span class="s3">;</span><span class="s1"> 
+  await User.remove()</span><span class="s3">;</span><span class="s1"> 
+ 
+  </span><span class="s0">return </span><span class="s1">res.json(</span><span class="s2">'Removed success'</span><span class="s1">)</span><span class="s3">;</span><span class="s1"> 
+})</span><span class="s3">;</span><span class="s1"> 
+/JKJK</span><span class="s2">''''</span><span class="s5">\\</span><span class="s1">||||||||||||||||||||||||||</span><span class="s5">\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ </span><span class="s1">BNN N  M</span><span class="s3">,</span><span class="s1">B B B NJMVCVCVVGGBN]=]][P099IK</span><span class="s5">\</span><span class="s1">-</span><span class="s4">0</span><span class="s1">] 
+app.get(</span><span class="s2">'/pets/populate'</span><span class="s1">)</span><span class="s3">;</span><span class="s1"> 
+</span><span class="s6">// app.post('/data', async (req, res) =&gt; {</span><span class="s1"> 
+</span><span class="s6">//   const wq = req.body;</span><span class="s1"> 
+</span><span class="s6">//   console.log(wq);</span><span class="s1"> 
+</span><span class="s6">//   const data = JSON.parse(req.body);</span><span class="s1"> 
+</span><span class="s6">//   return res.json(await saveDataInDb(data));</span><span class="s1"> 
+</span><span class="s6">// });</span><span class="s1"> 
+app.listen(</span><span class="s4">3000</span><span class="s3">, </span><span class="s0">function</span><span class="s1">(){ 
+  console.log(</span><span class="s2">'Express server listening on port' </span><span class="s1">)</span><span class="s3">;</span><span class="s1"> 
+})</span><span class="s3">;</span><span class="s1"> 
+</span></pre>
+</body>
+</html>
